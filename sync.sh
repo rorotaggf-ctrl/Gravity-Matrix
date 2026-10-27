@@ -1,43 +1,35 @@
 #!/bin/bash
+set -e
 
-# 1. Namen des aktuellen Projektordners dynamisch holen
-PROJ_NAME=$(basename "$PWD")
-
-# 2. Aktiven Branch ermitteln (z. B. main oder master)
-BRANCH=$(git branch --show-current 2>/dev/null)
-if [ -z "$BRANCH" ]; then
-    BRANCH="main"
-fi
-
-# 3. Commit-Nachricht setzen
-MSG=$1
-if [ -z "$MSG" ]; then
-    MSG="Auto-Sync: $PROJ_NAME Update"
-fi
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+MSG="${1:-Auto-Sync: gravity-matrix Update}"
 
 echo "=========================================="
-echo "  Universal Sync: $PROJ_NAME"
+echo "  Universal Sync: $(basename "$PWD")"
 echo "  Branch:         $BRANCH"
 echo "=========================================="
 
-# 4. Dateien stagen
+# 1. Lokale Änderungen erfassen & committen
 git add .
-
-# 5. Nur committen, wenn es echte Änderungen gibt
-if git diff-index --quiet HEAD -- 2>/dev/null; then
-    echo "Keine Änderungen zum Committen vorhanden."
-else
+if ! git diff-index --quiet HEAD --; then
     git commit -m "$MSG"
+else
+    echo "Keine neuen lokalen Änderungen zum Committen."
 fi
 
-# 6. Direkt zu GitHub pushen
+# 2. Vor dem Push: Stand von GitHub holen (Auto-Rebase)
+echo "Synchronisiere mit remote ($BRANCH)..."
+if ! git pull --rebase origin "$BRANCH"; then
+    echo "⚠️  KONFLIKT entdeckt! Breche automatischen Rebase ab..."
+    git rebase --abort
+    echo "FEHLER: Bitte Konflikte manuell auflösen!"
+    exit 1
+fi
+
+# 3. Sauber hochpushen
 echo "Pushe zu origin/$BRANCH..."
 git push origin "$BRANCH"
 
-if [ $? -eq 0 ]; then
-    echo "=========================================="
-    echo "  Fertig! $PROJ_NAME ist auf GitHub."
-    echo "=========================================="
-else
-    echo "FEHLER: Push fehlgeschlagen!"
-fi
+echo "=========================================="
+echo "  Erfolgreich synchronisiert!"
+echo "=========================================="
