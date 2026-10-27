@@ -5,25 +5,6 @@ The system captures board tilt and physical impacts via a 6-axis MPU-6050 IMU an
 
 ---
 
-## Hardware & PCB Previews
-
-### 1. 3D Render
-The fully assembled board featuring the central 1.3" IPS display, top-mounted gyroscope/accelerometer breakout, and socketed ESP32 module.
-
-![PCB 3D View](images/pcb_3d.png)
-
-### 2. PCB Layout
-Two-layer custom layout with isolated 3.3V power rails, dedicated SPI/I2C trace runs, and top/bottom ground fill planes (`GND`).
-
-![KiCad PCB Editor](images/pcb_layout.png)
-
-### 3. Schematic
-Clean modular schematic separating the ESP32 socket headers, display bus interface, sensor connections, and decoupling capacitors.
-
-![KiCad Schematic](images/schematic.png)
-
----
-
 ## Features
 
 - **Microcontroller:** ESP32 NodeMCU (Xtensa dual-core LX6, 240 MHz, 320 KB SRAM, USB-C).
