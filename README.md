@@ -1,7 +1,7 @@
 # Gravity-Matrix
 
-An interactive physics-simulation and digital sand toy powered by an ESP32, developed for **Hack Club Half-Life (Week 4: Displays)**.  
-The system captures board tilt and physical impacts via a 6-axis MPU-6050 IMU and runs a real-time cellular automata sand simulation displayed on a 1.3" IPS TFT display (240x240, ST7789 driver). The core physics and bit-packing operations are written in pure C99 and cycle-optimized Xtensa LX6 assembly.
+An interactive physics simulation, digital sand toy, and graphical desk instrument powered by an ESP32, developed for **Hack Club Half-Life (Week 4: Displays)**.  
+The system captures board tilt and physical impacts via a 6-axis MPU-6050 IMU and drives a 1.3" IPS TFT display (240x240, ST7789 controller via SPI). The firmware features an interactive tilt menu, a real-time cellular automata sand simulation with dynamic avalanche collision handling, and a trigonometric analog clock GUI with flicker-free differential rendering.
 
 ---
 
@@ -9,9 +9,10 @@ The system captures board tilt and physical impacts via a 6-axis MPU-6050 IMU an
 
 - **Microcontroller:** ESP32 NodeMCU (Xtensa dual-core LX6, 240 MHz, 320 KB SRAM, USB-C).
 - **Display Module:** 1.3" IPS full-color screen (240x240 pixels, 65K colors, ST7789 controller via hardware SPI).
-- **Inertial Sensor:** GY-521 Breakout (MPU-6050 3-axis accelerometer + 3-axis gyroscope via Fast-Mode I2C).
-- **Low-Level Simulation Engine:** Real-time cellular automata sand physics with momentum, obstacle bouncing, and shock agitation.
-- **Assembly Optimizations:** Native Xtensa LX6 assembly routines (`.S`) for cycle-accurate bit-reversal and rapid buffer mixing.
+- **Inertial Sensor:** GY-521 Breakout (MPU-6050 3-axis accelerometer + 3-axis gyroscope via Fast-Mode I2C at 400 kHz).
+- **Cellular Automata Sand Engine:** Real-time 60x60 particle simulation ($4 \times 4$ pixel grain scaling) calculating gravity slip, granular resting angles, and shake agitation.
+- **Trigonometric Analog Clock GUI:** Real-time geometric watchface with trigonometric ($sin / cos$) hand vectoring and differential rendering (erasing and drawing only modified vectors to eliminate display flicker).
+- **Tilt-Controlled Menu System:** Gesture-driven UI allowing mode selection via pitch/roll tilt and shake gestures without physical buttons.
 - **Power Delivery:** Powered directly via the USB-C port with ceramic decoupling capacitors (100nF) on peripheral rails.
 - **Modular Sockets:** All major components mount into 2.54mm female pin headers for serviceability.
 
@@ -68,13 +69,42 @@ The system captures board tilt and physical impacts via a 6-axis MPU-6050 IMU an
 
 ---
 
+## Hardware Design & Schematics
+
+### KiCad Schematic View
+Complete circuit diagram connecting the ESP32 NodeMCU socket headers to the SPI display bus, fast-mode I2C accelerometer, and rail decoupling capacitors.
+
+<img width="3371" height="1261" alt="KiCad Schematic" src="https://github.com/user-attachments/assets/deabe9f8-225d-437d-81bb-2b6437762164" />
+
+### KiCad PCB Layout & Trace Routing
+Two-layer carrier board layout with routed differential SPI/I2C signals, optimized component placement, and ground plane fills on both layers.
+
+<img width="2831" height="1227" alt="KiCad PCB Layout" src="https://github.com/user-attachments/assets/fabf514f-839e-4193-8992-44ffca825b46" />
+
+---
+
 ## Firmware Architecture & Implementation
 
-Development is carried out in **VS Code** using **PlatformIO** with a focus on bare-metal execution:
-- [x] Universal automated Git sync script (`sync.sh`).
+Development is carried out in **VS Code** using **PlatformIO** and the Espressif 32 framework, organized in a modular structure:
+
+- **`config.h`:** Global pin definitions for hardware SPI (GPIO 18, 23, 2, 4) and I2C buses (GPIO 21, 22), screen dimensions, and RGB565 color definitions.
+- **`imu.h` / `imu.cpp`:** Direct-register I2C driver for MPU-6050 streaming raw 3-axis acceleration and tilt data without high overhead.
+- **`sand_view.h` / `sand_view.cpp`:** Real-time falling sand simulation executing on a 60x60 grid with selective pixel differential drawing for flicker-free 30+ FPS refresh rates.
+- **`clock_view.h` / `clock_view.cpp`:** Analog watchface GUI calculating hand positions trigonometrically ($sin / cos$) with selective line redraws to prevent full-screen redraw artifacts.
+- **`menu_view.h` / `menu_view.cpp`:** Tilt-driven selection state machine navigating between instruments via real-time roll/pitch thresholds.
+- **`main.cpp`:** Central execution loop orchestrating sensor updates and instrument transitions.
+
+### Development Status
+- [x] Universal automated Git sync scripts (`sync.sh` / `sync.ps1`).
 - [x] MPU-6050 direct raw register polling over I2C bus (Registers `0x3B`–`0x40`).
-- [x] Particle cellular automata engine implemented in pure C (`physik.c`).
-- [x] Xtensa LX6 assembly primitives for bit-reversal and buffer agitation (`bit_asm.S`).
-- [ ] ST7789 bare-metal SPI initialization and command transmission sequence.
-- [ ] Scaled particle block renderer ($4 \times 4$ pixel grain scaling).
-- [ ] Final end-to-end integration test on physical hardware.
+- [x] Modular hardware configuration and display initialization via SPI.
+- [x] Real-time cellular automata particle engine with avalanche sliding.
+- [x] Trigonometric analog clock GUI with flicker-free differential line updates.
+- [x] Tilt and shake gesture navigation state machine.
+- [ ] Final integration run on physical carrier board.
+
+### Firmware Source Snapshots
+<img width="1669" height="810" alt="Code Snippet 1" src="https://github.com/user-attachments/assets/2f483256-e911-404a-9508-ed5a127ce95b" />
+<img width="1667" height="797" alt="Code Snippet 2" src="https://github.com/user-attachments/assets/e5b32698-0fe6-49f9-b2c3-e91807cf2a00" />
+<img width="1667" height="813" alt="Code Snippet 3" src="https://github.com/user-attachments/assets/7752784d-199b-4b3a-bdfd-14e52e5a3968" />
+<img width="1240" height="788" alt="Code Snippet 4" src="https://github.com/user-attachments/assets/0ea33e48-313b-479d-9821-d3e32cc48239" />
